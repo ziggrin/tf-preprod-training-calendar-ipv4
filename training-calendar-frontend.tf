@@ -1,264 +1,264 @@
-# locals {
-#   preprod_training_calendar_frontend_ssm_service = "training-calendar-frontend/preprod"
-#   preprod_training_calendar_frontend_ecr_namespace = "training-calendar-frontend"
-#   preprod_training_calendar_frontend_log_group_name = "/ecs/preprod-training-calendar" # loggin into cluster log group under /frontend
-#   tags_training_calendar_frontend = {
-#     Environment = "prepreprod"
-#     Project     = "omega"
-#     IaaC        = "terraform"
-#   }
-# }
+locals {
+  preprod_training_calendar_frontend_ssm_service = "training-calendar-frontend/preprod"
+  preprod_training_calendar_frontend_ecr_namespace = "training-calendar-frontend"
+  preprod_training_calendar_frontend_log_group_name = "/ecs/preprod-training-calendar" # loggin into cluster log group under /frontend
+  tags_training_calendar_frontend = {
+    Environment = "prepreprod"
+    Project     = "omega"
+    IaaC        = "terraform"
+  }
+}
 
 
-# ##########
-# ## ECR - docker registry
-# ##########
-# module "ecr_preprod_training_calendar_frontend_nginx" {
-#   source  = "cloudposse/ecr/aws"
-#   version = "0.42.1"
-#   image_tag_mutability = "MUTABLE"
-#   name = "nginx"
-#   stage = "preprod"
-#   namespace = "${local.preprod_training_calendar_frontend_ecr_namespace}"
-#   max_image_count = 2
-#   tags = local.tags_training_calendar_frontend
-# }
+##########
+## ECR - docker registry
+##########
+module "ecr_preprod_training_calendar_frontend_nginx" {
+  source  = "cloudposse/ecr/aws"
+  version = "0.42.1"
+  image_tag_mutability = "MUTABLE"
+  name = "nginx"
+  stage = "preprod"
+  namespace = "${local.preprod_training_calendar_frontend_ecr_namespace}"
+  max_image_count = 2
+  tags = local.tags_training_calendar_frontend
+}
 
 
-# ##########
-# ## CI user
-# ##########
-# module "preprod_training_calendar_iam_user_CI_frontend" {
-#   source  = "terraform-aws-modules/iam/aws//modules/iam-user"
-#   version = "~> 5.52.2"
+##########
+## CI user
+##########
+module "preprod_training_calendar_iam_user_CI_frontend" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-user"
+  version = "~> 5.52.2"
 
-#   name = "githubCI-preprod-training-calendar-frontend-aws"
-#   create_iam_user_login_profile = false
-#   create_iam_access_key         = false
-# }
+  name = "githubCI-preprod-training-calendar-frontend-aws"
+  create_iam_user_login_profile = false
+  create_iam_access_key         = false
+}
 
-# ## CI user - ECR policy
-# data "template_file" "preprod_training_calendar_frontend_ecr_access_policy" {
-#   template = "${file("${path.module}/templates/ecr/ecr-access-policy.json")}"
-#   vars = {
-#     repository_name = "${local.preprod_training_calendar_frontend_ecr_namespace}-*"
-#     aws_account_id = var.aws_account_id
-#     aws_region = var.aws_region
-#   }
-# }
+## CI user - ECR policy
+data "template_file" "preprod_training_calendar_frontend_ecr_access_policy" {
+  template = "${file("${path.module}/templates/ecr/ecr-access-policy.json")}"
+  vars = {
+    repository_name = "${local.preprod_training_calendar_frontend_ecr_namespace}-*"
+    aws_account_id = var.aws_account_id
+    aws_region = var.aws_region
+  }
+}
 
-# module "preprod_training_calendar_frontend_iam_policy_CI_ecr_access_policy" {
-#   source = "terraform-aws-modules/iam/aws//modules/iam-policy"
-#   version = "~> 5.52.2"
+module "preprod_training_calendar_frontend_iam_policy_CI_ecr_access_policy" {
+  source = "terraform-aws-modules/iam/aws//modules/iam-policy"
+  version = "~> 5.52.2"
 
-#   name        = "CI-ecr-${local.preprod_training_calendar_frontend_ecr_namespace}-access-policy"
-#   path        = "/"
-#   description = "CI access to ECR"
-#   policy = data.template_file.preprod_training_calendar_frontend_ecr_access_policy.rendered
-# }
+  name        = "CI-ecr-${local.preprod_training_calendar_frontend_ecr_namespace}-access-policy"
+  path        = "/"
+  description = "CI access to ECR"
+  policy = data.template_file.preprod_training_calendar_frontend_ecr_access_policy.rendered
+}
 
-# resource "aws_iam_user_policy_attachment" "preprod_training_calendar_frontend_CI_ecr_policy_attachment" {
-#   user       = module.preprod_training_calendar_iam_user_CI_frontend.iam_user_name
-#   policy_arn = module.preprod_training_calendar_frontend_iam_policy_CI_ecr_access_policy.arn
-# }
+resource "aws_iam_user_policy_attachment" "preprod_training_calendar_frontend_CI_ecr_policy_attachment" {
+  user       = module.preprod_training_calendar_iam_user_CI_frontend.iam_user_name
+  policy_arn = module.preprod_training_calendar_frontend_iam_policy_CI_ecr_access_policy.arn
+}
 
-# ## CI user - ECS policy
-# data "template_file" "preprod_training_calendar_frontend_ecs_update_service_policy" {
-#   template = "${file("${path.module}/templates/preprod-training-calendar-ecs/policy.json")}"
-#   vars = {
-#     aws_account_id = var.aws_account_id
-#     ecs_task_role_name = aws_iam_role.preprod_training_calendar_frontend_ecs_task_role.name
-#   }
-# }
+## CI user - ECS policy
+data "template_file" "preprod_training_calendar_frontend_ecs_update_service_policy" {
+  template = "${file("${path.module}/templates/preprod-training-calendar-ecs/policy.json")}"
+  vars = {
+    aws_account_id = var.aws_account_id
+    ecs_task_role_name = aws_iam_role.preprod_training_calendar_frontend_ecs_task_role.name
+  }
+}
 
-# module "preprod_training_calendar_frontend_iam_policy_CI_ecs_update_service" {
-#   source = "terraform-aws-modules/iam/aws//modules/iam-policy"
-#   version = "~> 5.52.2"
+module "preprod_training_calendar_frontend_iam_policy_CI_ecs_update_service" {
+  source = "terraform-aws-modules/iam/aws//modules/iam-policy"
+  version = "~> 5.52.2"
 
-#   name        = "CI-ecs-${module.ecr_preprod_training_calendar_frontend_nginx.repository_name}-update-service"
-#   path        = "/"
-#   description = "CI access to EcsUpdateService"
-#   policy = data.template_file.preprod_training_calendar_frontend_ecs_update_service_policy.rendered
-# }
+  name        = "CI-ecs-${module.ecr_preprod_training_calendar_frontend_nginx.repository_name}-update-service"
+  path        = "/"
+  description = "CI access to EcsUpdateService"
+  policy = data.template_file.preprod_training_calendar_frontend_ecs_update_service_policy.rendered
+}
 
-# resource "aws_iam_user_policy_attachment" "preprod_training_calendar_frontend_CI_ecs_update_service_policy_attachment" {
-#   user       = module.preprod_training_calendar_iam_user_CI_frontend.iam_user_name
-#   policy_arn = module.preprod_training_calendar_frontend_iam_policy_CI_ecs_update_service.arn
-# }
-
-
-# ##########
-# ## ECS task role
-# ##########
-# resource "aws_iam_role" "preprod_training_calendar_frontend_ecs_task_role" {
-#   name = "preprod-training-calendar-frontend-task-role"
-#   path = "/"
-
-#   assume_role_policy = <<EOF
-# {
-#   "Version": "2012-10-17",
-#   "Statement": [
-#     {
-#       "Sid": "",
-#       "Effect": "Allow",
-#       "Principal": {
-#         "Service": "ecs-tasks.amazonaws.com"
-#       },
-#       "Action": "sts:AssumeRole"
-#     }
-#   ]
-# }
-# EOF
-# }
-
-# resource "aws_iam_policy" "preprod_training_calendar_frontend_secrets_access_policy" {
-#   name = "preprod-training-calendar-frontend-secrets-access-policy" 
-#   policy = <<EOF
-# {
-#   "Version": "2012-10-17",
-#   "Statement": [
-#     {
-#       "Sid": "VisualEditor0",
-#       "Effect": "Allow",
-#       "Action": [
-#         "secretsmanager:GetSecretValue",
-#         "ssm:GetParametersByPath",
-#         "ssm:GetParameters",
-#         "ssm:DescribeParameters"
-#       ],
-#       "Resource": [
-#         "arn:aws:ssm:${var.aws_region}:*:parameter/${local.preprod_training_calendar_frontend_ssm_service}/*"
-#       ]
-#     },
-#     {
-#       "Effect": "Allow",
-#       "Action": [
-#         "ssmmessages:CreateControlChannel",
-#         "ssmmessages:CreateDataChannel",
-#         "ssmmessages:OpenControlChannel",
-#         "ssmmessages:OpenDataChannel"
-#       ],
-#       "Resource": "*"
-#     }
-#   ]
-# }
-# EOF
-# }
-
-# resource "aws_iam_role_policy_attachment" "preprod_training_calendar_frontend_policy_attachment" {
-#   role       = aws_iam_role.preprod_training_calendar_frontend_ecs_task_role.name
-#   policy_arn = aws_iam_policy.preprod_training_calendar_frontend_secrets_access_policy.arn
-# }
+resource "aws_iam_user_policy_attachment" "preprod_training_calendar_frontend_CI_ecs_update_service_policy_attachment" {
+  user       = module.preprod_training_calendar_iam_user_CI_frontend.iam_user_name
+  policy_arn = module.preprod_training_calendar_frontend_iam_policy_CI_ecs_update_service.arn
+}
 
 
-# ####################
-# ## Load balancer Target Group
-# ####################
-# resource "aws_lb_target_group" "preprod_training_calendar_frontend" {
-#   name     = "preprod-training-calendar-front"
-#   port     = 80
-#   protocol = "HTTP"
-#   vpc_id   = var.vpc_id
-#   target_type = "ip"
-# }
+##########
+## ECS task role
+##########
+resource "aws_iam_role" "preprod_training_calendar_frontend_ecs_task_role" {
+  name = "preprod-training-calendar-frontend-task-role"
+  path = "/"
 
-# resource "aws_lb_listener_rule" "preprod_training_calendar_frontend" {
-#   listener_arn = var.lb_listener_arn
-#   priority = 110
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
 
-#   action {
-#     type             = "forward"
-#     target_group_arn = aws_lb_target_group.preprod_training_calendar_frontend.arn
-#   }
+resource "aws_iam_policy" "preprod_training_calendar_frontend_secrets_access_policy" {
+  name = "preprod-training-calendar-frontend-secrets-access-policy" 
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "VisualEditor0",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue",
+        "ssm:GetParametersByPath",
+        "ssm:GetParameters",
+        "ssm:DescribeParameters"
+      ],
+      "Resource": [
+        "arn:aws:ssm:${var.aws_region}:*:parameter/${local.preprod_training_calendar_frontend_ssm_service}/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssmmessages:CreateControlChannel",
+        "ssmmessages:CreateDataChannel",
+        "ssmmessages:OpenControlChannel",
+        "ssmmessages:OpenDataChannel"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}
 
-#   condition {
-#     host_header {
-#       values = ["app.omega-next.online"]
-#     }
-#   }
-# }
+resource "aws_iam_role_policy_attachment" "preprod_training_calendar_frontend_policy_attachment" {
+  role       = aws_iam_role.preprod_training_calendar_frontend_ecs_task_role.name
+  policy_arn = aws_iam_policy.preprod_training_calendar_frontend_secrets_access_policy.arn
+}
 
 
-# ##########
-# ## ECS Task Definition
-# ##########
-# resource "aws_ecs_task_definition" "preprod_training_calendar_frontend" {
-#   family                   = "preprod-training-calendar-front"  # NAME CANNOT BE LONGER THEN 32 CHARACTERS
-#   network_mode             = "awsvpc"
-#   requires_compatibilities = ["FARGATE"]
-#   cpu                      = "256"
-#   memory                   = "512"
+####################
+## Load balancer Target Group
+####################
+resource "aws_lb_target_group" "preprod_training_calendar_frontend" {
+  name     = "preprod-training-calendar-front"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = var.vpc_id
+  target_type = "ip"
+}
 
-#   task_role_arn        = aws_iam_role.preprod_training_calendar_frontend_ecs_task_role.arn
-#   execution_role_arn   = "arn:aws:iam::${var.aws_account_id}:role/ecsTaskExecutionRole"
+resource "aws_lb_listener_rule" "preprod_training_calendar_frontend" {
+  listener_arn = var.lb_listener_arn
+  priority = 110
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.preprod_training_calendar_frontend.arn
+  }
+
+  condition {
+    host_header {
+      values = ["app.omega-next.online"]
+    }
+  }
+}
+
+
+##########
+## ECS Task Definition
+##########
+resource "aws_ecs_task_definition" "preprod_training_calendar_frontend" {
+  family                   = "preprod-training-calendar-front"  # NAME CANNOT BE LONGER THEN 32 CHARACTERS
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "256"
+  memory                   = "512"
+
+  task_role_arn        = aws_iam_role.preprod_training_calendar_frontend_ecs_task_role.arn
+  execution_role_arn   = "arn:aws:iam::${var.aws_account_id}:role/ecsTaskExecutionRole"
   
 
-#   # Containers
-#   container_definitions = jsonencode([
-#     {
-#       name      = "nginx"
-#       image     = "${module.ecr_preprod_training_calendar_frontend_nginx.repository_url}:latest"
-#       essential = true
-#       cpu       = 0
-#       memory    = null
+  # Containers
+  container_definitions = jsonencode([
+    {
+      name      = "nginx"
+      image     = "${module.ecr_preprod_training_calendar_frontend_nginx.repository_url}:latest"
+      essential = true
+      cpu       = 0
+      memory    = null
 
-#       portMappings = [
-#         {
-#           containerPort = 80
-#           hostPort      = 80
-#         }
-#       ]
+      portMappings = [
+        {
+          containerPort = 80
+          hostPort      = 80
+        }
+      ]
 
-#       logConfiguration = {
-#         logDriver = "awslogs"
-#         options = {
-#           "awslogs-group"         = local.preprod_training_calendar_frontend_log_group_name
-#           "awslogs-region"        = var.aws_region
-#           "awslogs-stream-prefix" = "frontend"
-#         }
-#       }
-#     }
-#   ])
-# }
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = local.preprod_training_calendar_frontend_log_group_name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "frontend"
+        }
+      }
+    }
+  ])
+}
 
 
-# ####################
-# ## ECS Service Definition
-# ####################
-# resource "aws_ecs_service" "preprod_training_calendar_frontend" {
-#   name            = "preprod-training-calendar-frontend"
-#   cluster         = module.preprod_training_calendar_ecs_cluster.cluster_id
-#   task_definition = aws_ecs_task_definition.preprod_training_calendar_frontend.arn
-#   desired_count   = 0
-#   launch_type     = "FARGATE"
-#   enable_execute_command  = true
+####################
+## ECS Service Definition
+####################
+resource "aws_ecs_service" "preprod_training_calendar_frontend" {
+  name            = "preprod-training-calendar-frontend"
+  cluster         = module.preprod_training_calendar_ecs_cluster.cluster_id
+  task_definition = aws_ecs_task_definition.preprod_training_calendar_frontend.arn
+  desired_count   = 0
+  launch_type     = "FARGATE"
+  enable_execute_command  = true
 
-#   load_balancer {
-#     target_group_arn = aws_lb_target_group.preprod_training_calendar_frontend.arn
-#     container_name   = "nginx"
-#     container_port   = 80
-#   }
+  load_balancer {
+    target_group_arn = aws_lb_target_group.preprod_training_calendar_frontend.arn
+    container_name   = "nginx"
+    container_port   = 80
+  }
 
-#   network_configuration {
-#     assign_public_ip = false
-#     subnets          = var.private_subnets
-#     security_groups  = var.ecs_sg
-#   }
+  network_configuration {
+    assign_public_ip = false
+    subnets          = var.private_subnets
+    security_groups  = var.ecs_sg
+  }
 
-#   health_check_grace_period_seconds = 30
+  health_check_grace_period_seconds = 30
 
-#   deployment_controller {
-#     type = "ECS"
-#   }
+  deployment_controller {
+    type = "ECS"
+  }
 
-#   lifecycle {
-#     ignore_changes = [
-#       task_definition,
-#       desired_count
-#     ]
-#   }
+  lifecycle {
+    ignore_changes = [
+      task_definition,
+      desired_count
+    ]
+  }
 
-#   depends_on = [
-#     aws_lb_listener_rule.preprod_training_calendar_frontend
-#   ]
-# }
+  depends_on = [
+    aws_lb_listener_rule.preprod_training_calendar_frontend
+  ]
+}
