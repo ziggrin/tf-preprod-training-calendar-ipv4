@@ -1,4 +1,4 @@
-# Terraform Iaac for:
+# Terraform IaaC for:
 - [preprod-training-calendar-api](https://github.com/ziggrin/training-calendar-api)
 - [preprod-training-calendar-frontend](https://github.com/ziggrin/training-calendar-frontend)
 
