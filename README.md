@@ -1,6 +1,6 @@
 # Terraform Iaac for:
-- [preprod-training-calendar-api]("https://github.com/ziggrin/training-calendar-api")
-- [preprod-training-calendar-frontend]("https://github.com/ziggrin/training-calendar-frontend")
+- [preprod-training-calendar-api](https://github.com/ziggrin/training-calendar-api)
+- [preprod-training-calendar-frontend](https://github.com/ziggrin/training-calendar-frontend)
 
 VPC repo: https://github.com/ziggrin/tf-main-01-vpc-ipv4
 
